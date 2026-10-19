@@ -1,15 +1,24 @@
 'use client';
 
 import React from 'react';
-import { BookOpen, Moon, Sun, Scroll, Sparkles, TrendingUp, Compass } from 'lucide-react';
+import { BookOpen, Moon, Sun, Scroll, Calendar, Clock } from 'lucide-react';
 
 interface HeaderProps {
   currentTheme: 'paper' | 'dark' | 'light';
   setTheme: (t: 'paper' | 'dark' | 'light') => void;
   onOpenBrief: () => void;
+  currentDate?: string;
 }
 
-export default function Header({ currentTheme, setTheme, onOpenBrief }: HeaderProps) {
+export default function Header({ currentTheme, setTheme, onOpenBrief, currentDate }: HeaderProps) {
+  // Fallback to formatted local date if not supplied
+  const displayDate = currentDate || new Date().toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+
   return (
     <header className="border-b border-stone-200/90 dark:border-slate-800/80 bg-white/90 dark:bg-[#0c121e]/90 backdrop-blur-md sticky top-[33px] z-40 transition-colors">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
@@ -36,15 +45,22 @@ export default function Header({ currentTheme, setTheme, onOpenBrief }: HeaderPr
             </div>
           </div>
 
-          {/* Controls & Actions */}
-          <div className="flex items-center gap-3">
+          {/* Right Top Date & Controls */}
+          <div className="flex items-center gap-3 sm:gap-4">
+            
+            {/* Real-time Dynamic Date Pill on Top Right */}
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-stone-100 dark:bg-slate-900 border border-stone-200 dark:border-slate-800 text-stone-700 dark:text-slate-200 font-mono text-xs shadow-sm">
+              <Calendar className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+              <span className="font-semibold">{displayDate}</span>
+            </div>
+
             {/* Daily Brief Deck Button */}
             <button
               onClick={onOpenBrief}
-              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold bg-stone-900 hover:bg-black dark:bg-amber-500 dark:hover:bg-amber-400 text-white dark:text-slate-950 rounded-xl shadow-sm hover:shadow transition-all active:scale-95 group"
+              className="hidden md:inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold bg-stone-900 hover:bg-black dark:bg-amber-500 dark:hover:bg-amber-400 text-white dark:text-slate-950 rounded-xl shadow-sm hover:shadow transition-all active:scale-95 group"
             >
               <BookOpen className="h-3.5 w-3.5 text-amber-400 dark:text-slate-950 group-hover:rotate-6 transition-transform" />
-              <span className="font-medium tracking-tight">Executive Slide Deck</span>
+              <span className="font-medium tracking-tight">Executive Deck</span>
             </button>
 
             {/* Aesthetic Theme Switcher */}
@@ -59,7 +75,7 @@ export default function Header({ currentTheme, setTheme, onOpenBrief }: HeaderPr
                 title="Paper Editorial Aesthetic"
               >
                 <Scroll className="h-3.5 w-3.5" />
-                <span className="hidden md:inline">Paper</span>
+                <span className="hidden lg:inline">Paper</span>
               </button>
 
               <button
@@ -72,7 +88,7 @@ export default function Header({ currentTheme, setTheme, onOpenBrief }: HeaderPr
                 title="Clean Light"
               >
                 <Sun className="h-3.5 w-3.5" />
-                <span className="hidden md:inline">Light</span>
+                <span className="hidden lg:inline">Light</span>
               </button>
 
               <button
@@ -85,7 +101,7 @@ export default function Header({ currentTheme, setTheme, onOpenBrief }: HeaderPr
                 title="Bloomberg Dark"
               >
                 <Moon className="h-3.5 w-3.5" />
-                <span className="hidden md:inline">Dark</span>
+                <span className="hidden lg:inline">Dark</span>
               </button>
             </div>
           </div>

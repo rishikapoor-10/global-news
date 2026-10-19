@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Header from '../components/Header';
 import GkTicker from '../components/GkTicker';
 import ArticleCard from '../components/ArticleCard';
 import ReaderModal from '../components/ReaderModal';
 import DailyBrief from '../components/DailyBrief';
 import { CURATED_MBA_ARTICLES, Article } from '../lib/articles';
-import { Globe, Building2, Layers, Search, Filter, Sparkles, TrendingUp, Compass, Award, BarChart3, Newspaper, SlidersHorizontal } from 'lucide-react';
+import { Globe, Building2, Layers, Search, Filter, Sparkles, TrendingUp, Compass, Award, BarChart3, Newspaper, SlidersHorizontal, RefreshCw } from 'lucide-react';
 
 export default function HomePage() {
   const [theme, setTheme] = useState<'paper' | 'dark' | 'light'>('paper');
@@ -16,6 +16,46 @@ export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [isDailyBriefOpen, setIsDailyBriefOpen] = useState(false);
+  
+  // Articles state: starts with curated and dynamically updates from live feeds
+  const [articles, setArticles] = useState<Article[]>(CURATED_MBA_ARTICLES);
+  const [currentDate, setCurrentDate] = useState<string>('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Dynamic live daily feed fetcher
+  const loadDailyNews = async () => {
+    setIsRefreshing(true);
+    try {
+      const res = await fetch('/api/news');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.articles && data.articles.length > 0) {
+          setArticles(data.articles);
+        }
+        if (data.currentDate) {
+          setCurrentDate(data.currentDate);
+        }
+      }
+    } catch (err) {
+      console.warn("Using offline intelligence baseline:", err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    // Set formatted client date immediately
+    const today = new Date().toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+    setCurrentDate(today);
+
+    // Fetch dynamic live feeds from the API
+    loadDailyNews();
+  }, []);
 
   // Categories list
   const categories = [
@@ -30,7 +70,7 @@ export default function HomePage() {
 
   // Filtered logic
   const filteredArticles = useMemo(() => {
-    return CURATED_MBA_ARTICLES.filter(article => {
+    return articles.filter(article => {
       // Scope filter
       if (scopeFilter !== 'All' && article.scope !== scopeFilter) {
         return false;
@@ -50,10 +90,10 @@ export default function HomePage() {
       }
       return true;
     });
-  }, [scopeFilter, categoryFilter, searchQuery]);
+  }, [articles, scopeFilter, categoryFilter, searchQuery]);
 
-  const intlCount = CURATED_MBA_ARTICLES.filter(a => a.scope === 'International').length;
-  const indianCount = CURATED_MBA_ARTICLES.filter(a => a.scope === 'Indian').length;
+  const intlCount = articles.filter(a => a.scope === 'International').length;
+  const indianCount = articles.filter(a => a.scope === 'Indian').length;
 
   return (
     <div className={theme === 'dark' ? 'dark' : theme === 'paper' ? 'theme-paper' : ''}>
@@ -62,11 +102,12 @@ export default function HomePage() {
         {/* Top 0.1% Macro Intelligence Ticker */}
         <GkTicker />
 
-        {/* Global Navigation Header */}
+        {/* Global Navigation Header with Dynamic Top Right Date */}
         <Header 
           currentTheme={theme} 
           setTheme={setTheme} 
-          onOpenBrief={() => setIsDailyBriefOpen(true)} 
+          onOpenBrief={() => setIsDailyBriefOpen(true)}
+          currentDate={currentDate}
         />
 
         {/* Hero Section */}
@@ -86,7 +127,7 @@ export default function HomePage() {
                 </h1>
 
                 <p className="mt-3.5 text-stone-600 dark:text-slate-400 text-sm sm:text-[15px] leading-relaxed">
-                  Direct synthesis from <strong>Wall Street Journal, Financial Times, NYTimes, Business Standard</strong> and <strong>CNBC-TV18</strong>. Stripped of noise; focused on capital allocation, policy shifts, and unit economics.
+                  Real-time live feeds and synthesis from <strong>Wall Street Journal, Financial Times, NYTimes, Business Standard</strong> and <strong>CNBC-TV18</strong>. Daily updated coverage stripped of noise; focused on capital allocation, policy shifts, and unit economics.
                 </p>
               </div>
 
@@ -101,7 +142,7 @@ export default function HomePage() {
                   }`}
                 >
                   <Layers className="w-3.5 h-3.5" />
-                  <span>Consolidated ({CURATED_MBA_ARTICLES.length})</span>
+                  <span>Consolidated ({articles.length})</span>
                 </button>
 
                 <button
@@ -154,16 +195,27 @@ export default function HomePage() {
                 ))}
               </div>
 
-              {/* Search Bar with Keyboard Indicator */}
-              <div className="relative w-full md:w-80">
-                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
-                <input
-                  type="text"
-                  placeholder="Filter stories, metrics, tickers ($NVDA)..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 text-xs bg-white dark:bg-slate-900 border border-stone-300/80 dark:border-slate-700/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-stone-900 dark:text-white placeholder:text-stone-400 shadow-sm"
-                />
+              {/* Search Bar + Refresh Trigger */}
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                <div className="relative w-full md:w-80">
+                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
+                  <input
+                    type="text"
+                    placeholder="Filter stories, metrics, tickers ($NVDA)..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 text-xs bg-white dark:bg-slate-900 border border-stone-300/80 dark:border-slate-700/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-stone-900 dark:text-white placeholder:text-stone-400 shadow-sm"
+                  />
+                </div>
+
+                <button
+                  onClick={loadDailyNews}
+                  disabled={isRefreshing}
+                  className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-stone-300/80 dark:border-slate-700/80 text-stone-600 dark:text-slate-300 hover:text-stone-900 dark:hover:text-white shadow-sm transition-all"
+                  title="Check for latest live updates"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-amber-500' : ''}`} />
+                </button>
               </div>
 
             </div>
@@ -184,9 +236,9 @@ export default function HomePage() {
               </span>
             </div>
 
-            <div className="text-xs font-mono text-stone-500 dark:text-slate-400 hidden sm:flex items-center gap-1.5">
+            <div className="text-xs font-mono text-stone-500 dark:text-slate-400 hidden sm:flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse" />
-              Verified Tier-1 Only
+              <span>Live Updates Active • {currentDate}</span>
             </div>
           </div>
 
