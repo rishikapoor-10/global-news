@@ -17,10 +17,10 @@ export default function HomePage() {
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [isDailyBriefOpen, setIsDailyBriefOpen] = useState(false);
   
-  // Articles state: starts with curated and dynamically updates from live feeds
-  const [articles, setArticles] = useState<Article[]>(CURATED_MBA_ARTICLES);
+  // Articles state: starts empty, fetches live feeds on mount
+  const [articles, setArticles] = useState<Article[]>([]);
   const [currentDate, setCurrentDate] = useState<string>('');
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(true);
 
   // Dynamic live daily feed fetcher
   const loadDailyNews = async () => {
